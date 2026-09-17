@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Alkaba Racer: Goes to Space Restaurant</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <!-- Chosen Palette: Deep Space Cyber Neon (Midnight Indigo #0b0d1b, Neon Cyan #06b6d4, Electric Pink #ec4899, Solar Gold #f59e0b) -->
+  <!-- Application Structure Plan: Single-Page Application (SPA) designed specifically for 5th Grade Primary School English learning. Features a 5-step workflow: (1) Cover Screen introducing Patrick, Phoebe, Alex & Cosmic Cafe, (2) Game Mode Selection (Solo 1-Player vs Duel 2-Player), (3) Hologram Character Selection with stats, (4) Alkaba Rocket Skin Customization, (5) Real-time Racing Canvas supporting Solo Fullscreen or Split-Screen with responsive layout shifts (vertical side-by-side for desktop/landscape/IFP and stacked horizontal for portrait mobile), and (6) Cosmic Cafe Victory Screen with multi-armed robot waiter celebration. -->
+  <!-- Visualization & Content Choices: HTML5 Canvas 2D API for high-performance space rendering (stars, rockets, thrusters, comets, power-up stars) ensuring zero SVG/Mermaid dependencies. Styled HTML/CSS with Tailwind for HUDs and virtual keypads. Universal input handler supports physical keyboard typing and touch keypads. -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+  <style>
+    * {
+      font-family: 'Fredoka', 'Outfit', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    
+    body {
+      background-color: #0b0d1b;
+      color: #ffffff;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Glow Styles */
+    .glow-cyan { text-shadow: 0 0 10px rgba(6, 182, 212, 0.8), 0 0 20px rgba(6, 182, 212, 0.4); }
+    .glow-pink { text-shadow: 0 0 10px rgba(236, 72, 153, 0.8), 0 0 20px rgba(236, 72, 153, 0.4); }
+    .glow-gold { text-shadow: 0 0 10px rgba(245, 158, 11, 0.8), 0 0 20px rgba(245, 158, 11, 0.4); }
+    .glow-green { text-shadow: 0 0 10px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.4); }
+    
+    .box-glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
+    .box-glow-pink { box-shadow: 0 0 20px rgba(236, 72, 153, 0.4); }
+    .box-glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+    .box-glow-gold { box-shadow: 0 0 20px rgba(245, 158, 11, 0.5); }
+
+    /* Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    @keyframes pulse-light {
+      0%, 100% { opacity: 0.9; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+
+    .animate-float { animation: float 3.5s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulse-light 2s ease-in-out infinite; }
+
+    /* Screen Shake on Impact */
+    .shake {
+      animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
+      40%, 60% { transform: translate3d(7px, 0, 0); }
+    }
+
+    /* Virtual Keypad Styling */
+    .v-key {
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      border: 1px solid #475569;
+      box-shadow: 0 3px 0 #0f172a;
+      transition: all 0.08s ease;
+      touch-action: manipulation;
+    }
+    .v-key:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0f172a;
+      background: #06b6d4;
+    }
+  </style>
+</head>
+<body class="relative flex flex-col justify-between">
+
+  <!-- TOP GLOBAL HEADER (Fullscreen, Audio Controls) -->
+  <header class="fixed top-2 left-2 right-2 z-50 flex items-center justify-between px-3 py-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-xl">
+    <div class="flex items-center space-x-2">
+      <span class="text-xl">🚀</span>
+      <span class="font-black text-xs sm:text-sm tracking-wider text-cyan-300">ALKABA RACER</span>
+      <span class="text-[10px] bg-yellow-500/20 text-yellow-300 font-bold px-2 py-0.5 rounded-full border border-yellow-400/30 hidden md:inline-block">GRADE 5 ENGLISH • GOAL: 1300 PTS</span>
+    </div>
+    
+    <div class="flex items-center space-x-2">
+      <button onclick="toggleBGM()" title="Toggle BGM" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition active:scale-95">
+        <i id="bgm-icon" class="fa-solid fa-music text-cyan-400 text-xs"></i>
+      </button>
+      <button onclick="toggleSFX()" title="Toggle SFX" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition active:scale-95">
+        <i id="sfx-icon" class="fa-solid fa-volume-high text-yellow-400 text-xs"></i>
+      </button>
+      <button onclick="toggleFullScreen()" title="Full Screen (Pojok Kanan Atas)" class="w-8 h-8 rounded-xl bg-cyan-600 hover:bg-cyan-500 border border-cyan-400 flex items-center justify-center transition active:scale-95 shadow-md">
+        <i class="fa-solid fa-expand text-white text-xs"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- SCREEN 1: COVER PAGE & MAIN BANNER -->
+  <section id="screen-cover" class="fixed inset-0 z-40 flex flex-col items-center justify-between p-4 pt-14 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-slate-950 overflow-y-auto">
+    
+    <div class="text-center max-w-2xl my-auto">
+      <div class="inline-block px-4 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-semibold mb-2">
+        🌟 Grade 5 Elementary English Educational Game
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-none glow-cyan mb-2">
+        ALKABA RACER
+      </h1>
+      <h2 class="text-lg sm:text-2xl font-bold text-yellow-400 glow-gold mb-3">
+        GOES TO SPACE RESTAURANT
+      </h2>
+
+      <!-- Cosmic Cafe & Astronauts Visual Scene -->
+      <div class="relative bg-slate-900/80 border-2 border-slate-800 rounded-3xl p-4 my-3 box-glow-cyan max-w-md mx-auto flex flex-col items-center">
+        <div class="text-5xl mb-2 animate-float">🤖🛸🍽️</div>
+        <p class="text-xs text-slate-300 font-medium">
+          Join <strong class="text-emerald-400">Patrick</strong>, <strong class="text-pink-400">Phoebe</strong>, and <strong class="text-cyan-400">Alex</strong> as they pilot the high-tech Alkaba Rocket through space to the Cosmic Cafe!
+        </p>
+        <div class="flex items-center justify-center space-x-3 mt-3 text-2xl">
+          <span title="Patrick">🧑‍🚀</span>
+          <span title="Phoebe">👩‍🚀</span>
+          <span title="Alex">👨‍🚀</span>
+        </div>
+      </div>
+
+      <button onclick="goToModeSelect()" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-pink-500 to-yellow-400 hover:scale-105 active:scale-95 text-slate-950 font-black text-lg shadow-2xl transition transform animate-pulse-glow flex items-center space-x-2 mx-auto cursor-pointer">
+        <span>ENTER SPACE RACE</span>
+        <i class="fa-solid fa-rocket"></i>
+      </button>
+    </div>
+
+  </section>
+
+  <!-- SCREEN 2: GAME MODE SELECTION (SOLO VS DUEL) -->
+  <section id="screen-mode" class="fixed inset-0 z-40 hidden flex-col items-center justify-between p-4 pt-14 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-slate-950 overflow-y-auto">
+    <div class="text-center max-w-xl my-2">
+      <h2 class="text-2xl sm:text-4xl font-black text-cyan-300 glow-cyan">SELECT GAME MODE</h2>
+      <p class="text-slate-300 text-xs mt-1">Play solo for practice or challenge a friend in head-to-head duel!</p>
+    </div>
+
+    <div class="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-4 my-auto">
+      
+      <!-- SOLO MODE CARD -->
+      <div onclick="selectGameMode('solo')" class="bg-slate-900/90 hover:bg-slate-800/90 border-2 border-emerald-500/60 rounded-3xl p-5 text-center box-glow-green cursor-pointer transition transform hover:scale-105 active:scale-95">
+        <div class="text-5xl my-2">👤🚀</div>
+        <h3 class="font-black text-emerald-400 text-xl glow-green mb-1">SOLO MODE</h3>
+        <p class="text-xs text-slate-300 mb-3">1 Player Fullscreen Experience</p>
+        <p class="text-[11px] text-slate-400">Practice your space driving skills and master English vocabulary solo!</p>
+      </div>
+
+      <!-- DUEL MODE CARD -->
+      <div onclick="selectGameMode('duel')" class="bg-slate-900/90 hover:bg-slate-800/90 border-2 border-pink-500/60 rounded-3xl p-5 text-center box-glow-pink cursor-pointer transition transform hover:scale-105 active:scale-95">
+        <div class="text-5xl my-2">⚔️🚀</div>
+        <h3 class="font-black text-pink-400 text-xl glow-pink mb-1">DUEL MODE</h3>
+        <p class="text-xs text-slate-300 mb-3">2 Players Split-Screen Race</p>
+        <p class="text-[11px] text-slate-400">Head-to-head race! First to collect 1,300 Points wins the race to Cosmic Cafe!</p>
+      </div>
+
+    </div>
+
+    <button onclick="backToCover()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 active:scale-95 mb-4">
+      BACK TO MAIN MENU
+    </button>
+  </section>
+
+  <!-- SCREEN 3: CHARACTER SELECTION STAGE -->
+  <section id="screen-character" class="fixed inset-0 z-40 hidden flex-col items-center justify-between p-3 sm:p-5 pt-12 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-slate-950 overflow-y-auto">
+    
+    <div class="relative z-10 text-center mt-1 max-w-3xl">
+      <h2 class="text-2xl sm:text-4xl font-black tracking-tight leading-none glow-cyan">
+        CHOOSE YOUR RACER!
+      </h2>
+      <p id="character-instruction-text" class="text-slate-300 text-xs mt-1">
+        Select pilot for Player 1 & Player 2!
+      </p>
+    </div>
+
+    <!-- RACER SELECTION CARDS -->
+    <div class="relative z-10 w-full max-w-5xl my-2 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+
+      <!-- PATRICK CARD -->
+      <div id="card-patrick" class="relative group bg-slate-900/80 border-2 border-emerald-500/50 rounded-2xl p-3 flex flex-col items-center shadow-xl transition-all duration-300">
+        <div class="w-20 h-20 rounded-full bg-emerald-950/80 border-2 border-emerald-400 flex items-center justify-center text-4xl mb-2 shadow-inner">
+          🧑‍🚀
+        </div>
+
+        <div class="w-full bg-slate-950 border border-emerald-400/50 rounded-xl p-2 text-center box-glow-green">
+          <h4 class="font-black text-emerald-400 text-lg glow-green tracking-wide">PATRICK</h4>
+          <p class="text-[10px] text-slate-400 mb-1">Ginger hair • Green suit</p>
+          <div class="space-y-1 text-[9px] text-slate-300 font-bold">
+            <div class="flex items-center justify-between">
+              <span>SPEED</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-emerald-400 h-full rounded-full" style="width: 80%;"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>BOOST</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-yellow-400 h-full rounded-full" style="width: 70%;"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>HANDLING</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-cyan-400 h-full rounded-full" style="width: 90%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex w-full space-x-2 mt-2">
+          <button onclick="assignRacer(1, 'Patrick')" id="p1-select-patrick" class="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 font-black text-xs text-white border border-emerald-300 transition shadow-md">
+            P1 SELECT
+          </button>
+          <button onclick="assignRacer(2, 'Patrick')" id="p2-select-patrick" class="p2-btn flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-700 active:scale-95 font-black text-xs text-slate-300 border border-slate-700 transition">
+            P2 SELECT
+          </button>
+        </div>
+      </div>
+
+      <!-- PHOEBE CARD -->
+      <div id="card-phoebe" class="relative group bg-slate-900/80 border-2 border-pink-500/50 rounded-2xl p-3 flex flex-col items-center shadow-xl transition-all duration-300">
+        <div class="w-20 h-20 rounded-full bg-pink-950/80 border-2 border-pink-400 flex items-center justify-center text-4xl mb-2 shadow-inner">
+          👩‍🚀
+        </div>
+
+        <div class="w-full bg-slate-950 border border-pink-400/50 rounded-xl p-2 text-center box-glow-pink">
+          <h4 class="font-black text-pink-400 text-lg glow-pink tracking-wide">PHOEBE</h4>
+          <p class="text-[10px] text-slate-400 mb-1">Brown hair • Blue overalls</p>
+          <div class="space-y-1 text-[9px] text-slate-300 font-bold">
+            <div class="flex items-center justify-between">
+              <span>SPEED</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-emerald-400 h-full rounded-full" style="width: 90%;"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>BOOST</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-yellow-400 h-full rounded-full" style="width: 80%;"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>HANDLING</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-cyan-400 h-full rounded-full" style="width: 70%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex w-full space-x-2 mt-2">
+          <button onclick="assignRacer(1, 'Phoebe')" id="p1-select-phoebe" class="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-pink-700 active:scale-95 font-black text-xs text-slate-300 border border-slate-700 transition">
+            P1 SELECT
+          </button>
+          <button onclick="assignRacer(2, 'Phoebe')" id="p2-select-phoebe" class="p2-btn flex-1 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 active:scale-95 font-black text-xs text-white border border-pink-300 transition shadow-md">
+            P2 SELECT
+          </button>
+        </div>
+      </div>
+
+      <!-- ALEX CARD -->
+      <div id="card-alex" class="relative group bg-slate-900/80 border-2 border-cyan-500/50 rounded-2xl p-3 flex flex-col items-center shadow-xl transition-all duration-300">
+        <div class="w-20 h-20 rounded-full bg-cyan-950/80 border-2 border-cyan-400 flex items-center justify-center text-4xl mb-2 shadow-inner">
+          👨‍🚀
+        </div>
+
+        <div class="w-full bg-slate-950 border border-cyan-400/50 rounded-xl p-2 text-center box-glow-cyan">
+          <h4 class="font-black text-cyan-400 text-lg glow-cyan tracking-wide">ALEX</h4>
+          <p class="text-[10px] text-slate-400 mb-1">Glasses • White sweater</p>
+          <div class="space-y-1 text-[9px] text-slate-300 font-bold">
+            <div class="flex items-center justify-between">
+              <span>SPEED</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-emerald-400 h-full rounded-full" style="width: 75%;"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>BOOST</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-yellow-400 h-full rounded-full" style="width: 95%;"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>HANDLING</span>
+              <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                <div class="bg-cyan-400 h-full rounded-full" style="width: 80%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex w-full space-x-2 mt-2">
+          <button onclick="assignRacer(1, 'Alex')" id="p1-select-alex" class="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-700 active:scale-95 font-black text-xs text-slate-300 border border-slate-700 transition">
+            P1 SELECT
+          </button>
+          <button onclick="assignRacer(2, 'Alex')" id="p2-select-alex" class="p2-btn flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-700 active:scale-95 font-black text-xs text-slate-300 border border-slate-700 transition">
+            P2 SELECT
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Active Selection Summary & Next Button -->
+    <div id="selection-summary-bar" class="relative z-10 w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-xl text-xs my-1">
+      <div class="flex items-center space-x-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+        <span class="font-black text-cyan-300">P1: <span id="p1-selected-name" class="text-white">Patrick</span></span>
+      </div>
+      <div id="vs-badge" class="text-yellow-400 font-black">VS</div>
+      <div id="p2-summary-box" class="flex items-center space-x-2">
+        <span class="font-black text-pink-300">P2: <span id="p2-selected-name" class="text-white">Phoebe</span></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-pink-400 animate-ping"></span>
+      </div>
+    </div>
+
+    <div class="flex space-x-3 my-1">
+      <button onclick="backToModeSelect()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 active:scale-95">
+        BACK
+      </button>
+      <button onclick="goToRocketSelect()" class="px-7 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 via-pink-500 to-yellow-400 hover:scale-105 active:scale-95 text-slate-950 font-black text-sm shadow-xl transition transform animate-pulse-glow flex items-center space-x-2 cursor-pointer">
+        <span>NEXT: CHOOSE ROCKET COLOR</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+  </section>
+
+  <!-- SCREEN 4: ALKABA ROCKET COLOR SELECTION -->
+  <section id="screen-rocket" class="fixed inset-0 z-40 hidden flex-col items-center justify-between p-4 pt-14 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-slate-950 overflow-y-auto">
+    <div class="text-center max-w-xl">
+      <h2 class="text-2xl sm:text-3xl font-black text-cyan-300 glow-cyan">ALKABA ROCKET COLOR</h2>
+      <p class="text-slate-300 text-xs mt-1">Select rocket skin for Player 1 (and Player 2 in Duel mode)!</p>
+    </div>
+
+    <div class="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 my-auto">
+      <!-- RED FIREBURST -->
+      <div class="bg-slate-900/90 border-2 border-red-500/60 rounded-2xl p-4 text-center box-glow-pink">
+        <div class="text-4xl my-2">🚀🔥</div>
+        <h3 class="font-black text-red-400 text-lg">RED FIREBURST</h3>
+        <p class="text-[11px] text-slate-400 mb-3">Crimson hull with fiery orange thrusters</p>
+        <div class="flex justify-center space-x-2">
+          <button onclick="setRocketSkin(1, 'red')" id="skin-p1-red" class="py-1.5 px-3 rounded-xl bg-red-600 text-white font-bold text-xs shadow">P1 USE RED</button>
+          <button onclick="setRocketSkin(2, 'red')" id="skin-p2-red" class="p2-btn py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700">P2 USE RED</button>
+        </div>
+      </div>
+
+      <!-- BLUE COSMIC -->
+      <div class="bg-slate-900/90 border-2 border-cyan-500/60 rounded-2xl p-4 text-center box-glow-cyan">
+        <div class="text-4xl my-2">🚀⚡</div>
+        <h3 class="font-black text-cyan-400 text-lg">BLUE COSMIC</h3>
+        <p class="text-[11px] text-slate-400 mb-3">Deep blue hull with electric cyan thrusters</p>
+        <div class="flex justify-center space-x-2">
+          <button onclick="setRocketSkin(1, 'blue')" id="skin-p1-blue" class="py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700">P1 USE BLUE</button>
+          <button onclick="setRocketSkin(2, 'blue')" id="skin-p2-blue" class="p2-btn py-1.5 px-3 rounded-xl bg-cyan-600 text-white font-bold text-xs shadow">P2 USE BLUE</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex space-x-3 mb-4">
+      <button onclick="backToCharacterSelect()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm border border-slate-700 active:scale-95">
+        BACK
+      </button>
+      <button onclick="startGame()" class="px-8 sm:px-10 py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 hover:scale-105 active:scale-95 text-slate-950 font-black text-base sm:text-lg shadow-xl transition">
+        🚀 LAUNCH RACE NOW!
+      </button>
+    </div>
+  </section>
+
+  <!-- SCREEN 5: GAMEPLAY ENGINE (SOLO FULLSCREEN OR DUEL SPLIT-SCREEN) -->
+  <main id="game-container" class="fixed inset-0 pt-11 z-10 hidden flex-col md:flex-row bg-slate-950">
+    
+    <!-- PLAYER 1 VIEW -->
+    <section id="p1-view" class="relative flex-1 h-full flex flex-col overflow-hidden bg-slate-950">
+      <div class="absolute top-2 left-2 right-2 z-20 flex items-center justify-between p-2 rounded-xl bg-slate-900/90 border border-cyan-500/40 backdrop-blur-md shadow-lg text-xs pointer-events-none">
+        <div class="flex items-center space-x-2">
+          <div id="p1-hud-avatar" class="w-7 h-7 rounded-full bg-emerald-600 border border-emerald-300 flex items-center justify-center font-bold text-white text-xs">P1</div>
+          <div>
+            <div id="p1-hud-name" class="font-extrabold text-cyan-300">Patrick</div>
+            <div class="text-[10px] text-slate-300">PTS: <span id="p1-score-text" class="text-yellow-300 font-bold">0</span>/1300</div>
+          </div>
+        </div>
+
+        <!-- Fuel Meter -->
+        <div class="flex-1 mx-3 max-w-[120px] sm:max-w-[160px]">
+          <div class="flex justify-between text-[9px] font-bold text-cyan-300 mb-0.5">
+            <span>FUEL</span>
+            <span id="p1-fuel-text">100%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 p-0.5 border border-slate-700">
+            <div id="p1-fuel-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div id="p1-skin-badge" class="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-red-400 border border-slate-700">RED</div>
+      </div>
+
+      <canvas id="canvas-p1" class="w-full h-full block cursor-pointer"></canvas>
+
+      <!-- Touch Steering Controls -->
+      <div id="p1-controls" class="absolute bottom-2 left-2 right-2 z-20 flex justify-between items-center pointer-events-none">
+        <button id="p1-btn-left" class="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-cyan-600/90 active:bg-cyan-400 border-2 border-cyan-300 text-white font-black text-2xl shadow-2xl flex items-center justify-center backdrop-blur-md active:scale-90 transition">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="text-[9px] font-bold bg-slate-900/80 px-2 py-1 rounded text-cyan-300 border border-slate-700 hidden sm:block">KEYBOARD: A / D</div>
+        <button id="p1-btn-right" class="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-cyan-600/90 active:bg-cyan-400 border-2 border-cyan-300 text-white font-black text-2xl shadow-2xl flex items-center justify-center backdrop-blur-md active:scale-90 transition">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- Quiz Overlay Modal -->
+      <div id="p1-quiz-modal" class="absolute inset-0 z-30 hidden flex-col items-center justify-center p-3 bg-slate-950/90 backdrop-blur-md">
+        <div class="w-full max-w-sm bg-slate-900 border-2 border-yellow-400 rounded-2xl p-3 text-center shadow-2xl">
+          <div class="text-xs font-bold text-yellow-300 mb-0.5">⭐ VOCAB STAR QUIZ</div>
+          <div id="p1-quiz-cat" class="text-[10px] text-cyan-300 font-semibold uppercase tracking-wider mb-0.5">Category</div>
+          <div id="p1-quiz-icon" class="text-3xl sm:text-4xl my-1">🍕</div>
+          <div id="p1-quiz-prompt" class="text-xs font-bold text-white mb-1">Type or click the word:</div>
+          
+          <input type="text" id="p1-quiz-input" readonly class="w-full bg-slate-950 border border-slate-700 text-center text-yellow-300 font-black text-lg py-1 px-2 rounded-xl mb-2 uppercase tracking-widest">
+          
+          <div id="p1-keypad" class="grid grid-cols-7 gap-1 max-w-[280px] mx-auto mb-2"></div>
+
+          <div class="flex space-x-2">
+            <button onclick="clearQuizInput(1)" class="flex-1 py-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700 active:scale-95">CLEAR</button>
+            <button onclick="submitQuizAnswer(1)" class="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-black text-xs border border-emerald-400 active:scale-95 shadow">SUBMIT</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAYER 2 VIEW (ACTIVE IN DUEL MODE ONLY) -->
+    <section id="p2-view" class="relative flex-1 h-full border-t-2 md:border-t-0 md:border-l-2 border-pink-500/40 flex flex-col overflow-hidden bg-slate-950">
+      <div class="absolute top-2 left-2 right-2 z-20 flex items-center justify-between p-2 rounded-xl bg-slate-900/90 border border-pink-500/40 backdrop-blur-md shadow-lg text-xs pointer-events-none">
+        <div class="flex items-center space-x-2">
+          <div id="p2-hud-avatar" class="w-7 h-7 rounded-full bg-pink-600 border border-pink-300 flex items-center justify-center font-bold text-white text-xs">P2</div>
+          <div>
+            <div id="p2-hud-name" class="font-extrabold text-pink-300">Phoebe</div>
+            <div class="text-[10px] text-slate-300">PTS: <span id="p2-score-text" class="text-yellow-300 font-bold">0</span>/1300</div>
+          </div>
+        </div>
+
+        <!-- Fuel Meter -->
+        <div class="flex-1 mx-3 max-w-[120px] sm:max-w-[160px]">
+          <div class="flex justify-between text-[9px] font-bold text-pink-300 mb-0.5">
+            <span>FUEL</span>
+            <span id="p2-fuel-text">100%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 p-0.5 border border-slate-700">
+            <div id="p2-fuel-bar" class="bg-gradient-to-r from-pink-400 to-yellow-400 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div id="p2-skin-badge" class="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-cyan-400 border border-slate-700">BLUE</div>
+      </div>
+
+      <canvas id="canvas-p2" class="w-full h-full block cursor-pointer"></canvas>
+
+      <!-- Touch Steering Controls -->
+      <div id="p2-controls" class="absolute bottom-2 left-2 right-2 z-20 flex justify-between items-center pointer-events-none">
+        <button id="p2-btn-left" class="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-pink-600/90 active:bg-pink-400 border-2 border-pink-300 text-white font-black text-2xl shadow-2xl flex items-center justify-center backdrop-blur-md active:scale-90 transition">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="text-[9px] font-bold bg-slate-900/80 px-2 py-1 rounded text-pink-300 border border-slate-700 hidden sm:block">KEYBOARD: ← / →</div>
+        <button id="p2-btn-right" class="pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-pink-600/90 active:bg-pink-400 border-2 border-pink-300 text-white font-black text-2xl shadow-2xl flex items-center justify-center backdrop-blur-md active:scale-90 transition">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- Quiz Overlay Modal -->
+      <div id="p2-quiz-modal" class="absolute inset-0 z-30 hidden flex-col items-center justify-center p-3 bg-slate-950/90 backdrop-blur-md">
+        <div class="w-full max-w-sm bg-slate-900 border-2 border-yellow-400 rounded-2xl p-3 text-center shadow-2xl">
+          <div class="text-xs font-bold text-yellow-300 mb-0.5">⭐ VOCAB STAR QUIZ</div>
+          <div id="p2-quiz-cat" class="text-[10px] text-pink-300 font-semibold uppercase tracking-wider mb-0.5">Category</div>
+          <div id="p2-quiz-icon" class="text-3xl sm:text-4xl my-1">🥛</div>
+          <div id="p2-quiz-prompt" class="text-xs font-bold text-white mb-1">Type or click the word:</div>
+          
+          <input type="text" id="p2-quiz-input" readonly class="w-full bg-slate-950 border border-slate-700 text-center text-yellow-300 font-black text-lg py-1 px-2 rounded-xl mb-2 uppercase tracking-widest">
+          
+          <div id="p2-keypad" class="grid grid-cols-7 gap-1 max-w-[280px] mx-auto mb-2"></div>
+
+          <div class="flex space-x-2">
+            <button onclick="clearQuizInput(2)" class="flex-1 py-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700 active:scale-95">CLEAR</button>
+            <button onclick="submitQuizAnswer(2)" class="flex-1 py-1.5 rounded-lg bg-pink-600 text-white font-black text-xs border border-pink-400 active:scale-95 shadow">SUBMIT</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SCREEN 6: FINISH LINE & VICTORY SCREEN (COSMIC CAFE) -->
+  <section id="screen-victory" class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl">
+    <div class="w-full max-w-md bg-slate-900 border-2 border-yellow-400 rounded-3xl p-5 text-center shadow-2xl relative overflow-hidden">
+      <!-- Multi-Armed Robot Waiter Visual -->
+      <div class="text-5xl my-2 animate-float">🤖🍽️</div>
+
+      <h2 class="text-2xl font-black text-yellow-300 tracking-wide mb-1 glow-gold">COSMIC CAFE VICTORY!</h2>
+      <p class="text-slate-300 text-xs mb-3">Welcome to the Space Restaurant! 🎉</p>
+
+      <div id="winner-badge" class="bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 p-3 rounded-2xl text-slate-950 font-black text-base mb-3 shadow-lg flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-crown text-xl"></i>
+        <span id="winner-name-text">Patrick REACHED 1300 PTS!</span>
+      </div>
+
+      <div id="final-scores-grid" class="grid grid-cols-2 gap-2 mb-4 text-left text-xs">
+        <div class="bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+          <div class="text-slate-400 text-[10px]">P1 Final Score</div>
+          <div id="p1-final-score" class="text-cyan-400 font-black text-sm">1300 PTS</div>
+        </div>
+        <div id="p2-score-card" class="bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+          <div class="text-slate-400 text-[10px]">P2 Final Score</div>
+          <div id="p2-final-score" class="text-pink-400 font-black text-sm">800 PTS</div>
+        </div>
+      </div>
+
+      <div class="flex space-x-2">
+        <button onclick="startGame()" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-lg transition active:scale-95">
+          <i class="fa-solid fa-rotate-right mr-1"></i> REPLAY RACE
+        </button>
+        <button onclick="returnToMenu()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition active:scale-95">
+          <i class="fa-solid fa-house mr-1"></i> MENU
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME LOGIC SCRIPTS -->
+  <script>
+    // --- AUDIO SYSTEM (Web Audio API Synthesizer) ---
+    let audioCtx = null;
+    let isBgmPlaying = false;
+    let isBgmMuted = false;
+    let isSfxMuted = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleBGM() {
+      initAudio();
+      isBgmMuted = !isBgmMuted;
+      document.getElementById('bgm-icon').className = isBgmMuted ? 'fa-solid fa-music-slash text-slate-500 text-xs' : 'fa-solid fa-music text-cyan-400 text-xs';
+      if (isBgmMuted) isBgmPlaying = false;
+      else { isBgmPlaying = true; playBGMLoop(); }
+    }
+
+    function toggleSFX() {
+      initAudio();
+      isSfxMuted = !isSfxMuted;
+      document.getElementById('sfx-icon').className = isSfxMuted ? 'fa-solid fa-volume-xmark text-slate-500 text-xs' : 'fa-solid fa-volume-high text-yellow-400 text-xs';
+    }
+
+    let bgmStep = 0;
+    const bgmNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23];
+    function playBGMLoop() {
+      if (!isBgmPlaying || isBgmMuted || !audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(bgmNotes[bgmStep % bgmNotes.length], audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+        bgmStep++;
+        setTimeout(playBGMLoop, 280);
+      } catch (e) {}
+    }
+
+    function playSFX(type) {
+      if (isSfxMuted) return;
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'comet') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      } else if (type === 'star') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.setValueAtTime(880, now + 0.1);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      } else if (type === 'correct') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.1);
+        osc.frequency.setValueAtTime(783.99, now + 0.2);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+      } else if (type === 'wrong') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.setValueAtTime(120, now + 0.15);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      }
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    // --- GRADE 5 VOCABULARY DATA SETS ---
+    const vocabData = [
+      // Food Vocabulary (9 words)
+      { word: 'strawberry', cat: 'Food', icon: '🍓' },
+      { word: 'biscuit', cat: 'Food', icon: '🍪' },
+      { word: 'pepper', cat: 'Food', icon: '🫑' },
+      { word: 'salt', cat: 'Food', icon: '🧂' },
+      { word: 'pizza', cat: 'Food', icon: '🍕' },
+      { word: 'cake', cat: 'Food', icon: '🍰' },
+      { word: 'burger', cat: 'Food', icon: '🍔' },
+      { word: 'salad', cat: 'Food', icon: '🥗' },
+      { word: 'noodle', cat: 'Food', icon: '🍜' },
+      // Drink Vocabulary (5 words)
+      { word: 'water', cat: 'Drink', icon: '💧' },
+      { word: 'juice', cat: 'Drink', icon: '🧃' },
+      { word: 'tea', cat: 'Drink', icon: '🍵' },
+      { word: 'milk', cat: 'Drink', icon: '🥛' },
+      { word: 'coffee', cat: 'Drink', icon: '☕' },
+      // Eating Tools Vocabulary (7 words)
+      { word: 'spoon', cat: 'Eating Tools', icon: '🥄' },
+      { word: 'fork', cat: 'Eating Tools', icon: '🍴' },
+      { word: 'napkin', cat: 'Eating Tools', icon: '🧻' },
+      { word: 'chopsticks', cat: 'Eating Tools', icon: '🥢' },
+      { word: 'cup', cat: 'Eating Tools', icon: '🥤' },
+      { word: 'knife', cat: 'Eating Tools', icon: '🔪' },
+      { word: 'bowl', cat: 'Eating Tools', icon: '🥣' }
+    ];
+
+    const characters = {
+      'Patrick': { name: 'Patrick', turnSpeed: 7.0 },
+      'Phoebe': { name: 'Phoebe', turnSpeed: 6.0 },
+      'Alex': { name: 'Alex', turnSpeed: 6.5 }
+    };
+
+    // State Variables
+    let currentGameMode = 'duel'; // 'solo' or 'duel'
+    let player1 = { name: 'Patrick', skin: 'red', score: 0, fuel: 100, x: 0, y: 0, angle: 0, movingLeft: false, movingRight: false, isAnswering: false, currentQuiz: null, quizInput: '' };
+    let player2 = { name: 'Phoebe', skin: 'blue', score: 0, fuel: 100, x: 0, y: 0, angle: 0, movingLeft: false, movingRight: false, isAnswering: false, currentQuiz: null, quizInput: '' };
+
+    const WIN_SCORE = 1300;
+    let isGameRunning = false;
+    let canvasP1, ctxP1, canvasP2, ctxP2;
+    let p1Objects = [], p2Objects = [];
+
+    function goToModeSelect() {
+      document.getElementById('screen-cover').classList.add('hidden');
+      document.getElementById('screen-mode').classList.remove('hidden');
+      document.getElementById('screen-mode').classList.add('flex');
+    }
+
+    function backToCover() {
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-cover').classList.remove('hidden');
+    }
+
+    function selectGameMode(mode) {
+      currentGameMode = mode;
+      
+      // Update UI elements based on mode
+      const p2Btns = document.querySelectorAll('.p2-btn');
+      const p2SummaryBox = document.getElementById('p2-summary-box');
+      const vsBadge = document.getElementById('vs-badge');
+
+      if (mode === 'solo') {
+        p2Btns.forEach(btn => btn.classList.add('hidden'));
+        p2SummaryBox.classList.add('hidden');
+        vsBadge.classList.add('hidden');
+        document.getElementById('character-instruction-text').innerText = 'Select pilot for Player 1!';
+      } else {
+        p2Btns.forEach(btn => btn.classList.remove('hidden'));
+        p2SummaryBox.classList.remove('hidden');
+        vsBadge.classList.remove('hidden');
+        document.getElementById('character-instruction-text').innerText = 'Select pilots for Player 1 & Player 2!';
+      }
+
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-character').classList.remove('hidden');
+      document.getElementById('screen-character').classList.add('flex');
+    }
+
+    function backToModeSelect() {
+      document.getElementById('screen-character').classList.add('hidden');
+      document.getElementById('screen-mode').classList.remove('hidden');
+    }
+
+    function assignRacer(pNum, charName) {
+      if (pNum === 1) {
+        player1.name = charName;
+        document.getElementById('p1-selected-name').innerText = charName;
+      } else {
+        player2.name = charName;
+        document.getElementById('p2-selected-name').innerText = charName;
+      }
+    }
+
+    function goToRocketSelect() {
+      document.getElementById('screen-character').classList.add('hidden');
+      document.getElementById('screen-rocket').classList.remove('hidden');
+      document.getElementById('screen-rocket').classList.add('flex');
+    }
+
+    function backToCharacterSelect() {
+      document.getElementById('screen-rocket').classList.add('hidden');
+      document.getElementById('screen-character').classList.remove('hidden');
+    }
+
+    function setRocketSkin(pNum, skin) {
+      if (pNum === 1) {
+        player1.skin = skin;
+        document.getElementById('skin-p1-red').className = skin === 'red' ? 'py-1.5 px-3 rounded-xl bg-red-600 text-white font-bold text-xs shadow' : 'py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+        document.getElementById('skin-p1-blue').className = skin === 'blue' ? 'py-1.5 px-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow' : 'py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+      } else {
+        player2.skin = skin;
+        document.getElementById('skin-p2-red').className = skin === 'red' ? 'py-1.5 px-3 rounded-xl bg-red-600 text-white font-bold text-xs shadow' : 'py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+        document.getElementById('skin-p2-blue').className = skin === 'blue' ? 'py-1.5 px-3 rounded-xl bg-cyan-600 text-white font-bold text-xs shadow' : 'py-1.5 px-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700';
+      }
+    }
+
+    function startGame() {
+      initAudio();
+      if (!isBgmMuted) { isBgmPlaying = true; playBGMLoop(); }
+
+      document.getElementById('screen-cover').classList.add('hidden');
+      document.getElementById('screen-rocket').classList.add('hidden');
+      document.getElementById('screen-victory').classList.add('hidden');
+      document.getElementById('game-container').classList.remove('hidden');
+      document.getElementById('game-container').classList.add('flex');
+
+      // Adjust view layout based on Solo or Duel Mode
+      const p2View = document.getElementById('p2-view');
+      if (currentGameMode === 'solo') {
+        p2View.classList.add('hidden');
+      } else {
+        p2View.classList.remove('hidden');
+      }
+
+      canvasP1 = document.getElementById('canvas-p1');
+      ctxP1 = canvasP1.getContext('2d');
+      canvasP2 = document.getElementById('canvas-p2');
+      ctxP2 = canvasP2.getContext('2d');
+
+      resizeCanvases();
+
+      // Reset Players State
+      player1.score = 0; player1.fuel = 100; player1.isAnswering = false;
+      player2.score = 0; player2.fuel = 100; player2.isAnswering = false;
+
+      // HUD Setup
+      document.getElementById('p1-hud-name').innerText = player1.name;
+      document.getElementById('p1-hud-avatar').innerText = player1.name[0];
+      document.getElementById('p1-skin-badge').innerText = player1.skin.toUpperCase();
+      document.getElementById('p1-skin-badge').className = player1.skin === 'red' ? 'bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-red-400 border border-slate-700' : 'bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-cyan-400 border border-slate-700';
+
+      if (currentGameMode === 'duel') {
+        document.getElementById('p2-hud-name').innerText = player2.name;
+        document.getElementById('p2-hud-avatar').innerText = player2.name[0];
+        document.getElementById('p2-skin-badge').innerText = player2.skin.toUpperCase();
+        document.getElementById('p2-skin-badge').className = player2.skin === 'red' ? 'bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-red-400 border border-slate-700' : 'bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-cyan-400 border border-slate-700';
+      }
+
+      p1Objects = []; p2Objects = [];
+      isGameRunning = true;
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvases() {
+      if (!canvasP1 || !canvasP2) return;
+      const box1 = canvasP1.parentElement.getBoundingClientRect();
+      canvasP1.width = box1.width; canvasP1.height = box1.height;
+      player1.x = canvasP1.width / 2; player1.y = canvasP1.height - 80;
+
+      if (currentGameMode === 'duel') {
+        const box2 = canvasP2.parentElement.getBoundingClientRect();
+        canvasP2.width = box2.width; canvasP2.height = box2.height;
+        player2.x = canvasP2.width / 2; player2.y = canvasP2.height - 80;
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvases);
+
+    // KEYBOARD DRIVEN CONTROLS
+    window.addEventListener('keydown', (e) => {
+      if (!isGameRunning) return;
+
+      if (player1.isAnswering) {
+        if (e.key === 'Enter') { submitQuizAnswer(1); return; }
+        if (e.key === 'Backspace') { 
+          player1.quizInput = player1.quizInput.slice(0, -1); 
+          document.getElementById('p1-quiz-input').value = player1.quizInput;
+          return;
+        }
+        if (/^[a-zA-Z]$/.test(e.key)) {
+          player1.quizInput += e.key.toUpperCase();
+          document.getElementById('p1-quiz-input').value = player1.quizInput;
+          return;
+        }
+      }
+
+      if (currentGameMode === 'duel' && player2.isAnswering) {
+        if (e.key === 'Enter') { submitQuizAnswer(2); return; }
+        if (e.key === 'Backspace') { 
+          player2.quizInput = player2.quizInput.slice(0, -1); 
+          document.getElementById('p2-quiz-input').value = player2.quizInput;
+          return;
+        }
+        if (/^[a-zA-Z]$/.test(e.key)) {
+          player2.quizInput += e.key.toUpperCase();
+          document.getElementById('p2-quiz-input').value = player2.quizInput;
+          return;
+        }
+      }
+
+      if (e.key === 'a' || e.key === 'A') player1.movingLeft = true;
+      if (e.key === 'd' || e.key === 'D') player1.movingRight = true;
+      if (currentGameMode === 'duel') {
+        if (e.key === 'ArrowLeft') player2.movingLeft = true;
+        if (e.key === 'ArrowRight') player2.movingRight = true;
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'a' || e.key === 'A') player1.movingLeft = false;
+      if (e.key === 'd' || e.key === 'D') player1.movingRight = false;
+      if (currentGameMode === 'duel') {
+        if (e.key === 'ArrowLeft') player2.movingLeft = false;
+        if (e.key === 'ArrowRight') player2.movingRight = false;
+      }
+    });
+
+    // TOUCHSCREEN CONTROLS
+    function bindTouchControls() {
+      const p1L = document.getElementById('p1-btn-left'), p1R = document.getElementById('p1-btn-right');
+      const p2L = document.getElementById('p2-btn-left'), p2R = document.getElementById('p2-btn-right');
+
+      const startLeftP1 = (e) => { e.preventDefault(); player1.movingLeft = true; };
+      const endLeftP1 = (e) => { e.preventDefault(); player1.movingLeft = false; };
+      const startRightP1 = (e) => { e.preventDefault(); player1.movingRight = true; };
+      const endRightP1 = (e) => { e.preventDefault(); player1.movingRight = false; };
+
+      p1L.addEventListener('pointerdown', startLeftP1); p1L.addEventListener('pointerup', endLeftP1); p1L.addEventListener('pointercancel', endLeftP1);
+      p1R.addEventListener('pointerdown', startRightP1); p1R.addEventListener('pointerup', endRightP1); p1R.addEventListener('pointercancel', endRightP1);
+
+      const startLeftP2 = (e) => { e.preventDefault(); player2.movingLeft = true; };
+      const endLeftP2 = (e) => { e.preventDefault(); player2.movingLeft = false; };
+      const startRightP2 = (e) => { e.preventDefault(); player2.movingRight = true; };
+      const endRightP2 = (e) => { e.preventDefault(); player2.movingRight = false; };
+
+      p2L.addEventListener('pointerdown', startLeftP2); p2L.addEventListener('pointerup', endLeftP2); p2L.addEventListener('pointercancel', endLeftP2);
+      p2R.addEventListener('pointerdown', startRightP2); p2R.addEventListener('pointerup', endRightP2); p2R.addEventListener('pointercancel', endRightP2);
+
+      // Direct Canvas Tap Steering
+      document.getElementById('canvas-p1').addEventListener('pointerdown', (e) => {
+        const rect = e.target.getBoundingClientRect();
+        const tapX = e.clientX - rect.left;
+        if (tapX < rect.width / 2) { player1.movingLeft = true; player1.movingRight = false; }
+        else { player1.movingRight = true; player1.movingLeft = false; }
+      });
+      document.getElementById('canvas-p1').addEventListener('pointerup', () => { player1.movingLeft = false; player1.movingRight = false; });
+
+      document.getElementById('canvas-p2').addEventListener('pointerdown', (e) => {
+        if (currentGameMode !== 'duel') return;
+        const rect = e.target.getBoundingClientRect();
+        const tapX = e.clientX - rect.left;
+        if (tapX < rect.width / 2) { player2.movingLeft = true; player2.movingRight = false; }
+        else { player2.movingRight = true; player2.movingLeft = false; }
+      });
+      document.getElementById('canvas-p2').addEventListener('pointerup', () => { player2.movingLeft = false; player2.movingRight = false; });
+    }
+    bindTouchControls();
+
+    // CORE GAME ENGINE LOOP
+    function gameLoop() {
+      if (!isGameRunning) return;
+
+      updatePlayer(1, player1, canvasP1, p1Objects);
+      drawPlayerSpace(ctxP1, player1, canvasP1, p1Objects);
+
+      if (currentGameMode === 'duel') {
+        updatePlayer(2, player2, canvasP2, p2Objects);
+        drawPlayerSpace(ctxP2, player2, canvasP2, p2Objects);
+      }
+
+      updateHUD();
+
+      // Check Win Condition: 1,300 Points OR Fuel Exhausted
+      if (player1.score >= WIN_SCORE || (currentGameMode === 'duel' && player2.score >= WIN_SCORE) || (player1.fuel <= 0 && (currentGameMode === 'solo' || player2.fuel <= 0))) {
+        endGame();
+        return;
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function updatePlayer(pNum, player, canvas, objects) {
+      if (player.isAnswering) return;
+
+      const charSpeed = characters[player.name].turnSpeed;
+
+      if (player.movingLeft) {
+        player.x -= charSpeed;
+        player.angle = Math.max(-0.35, player.angle - 0.08);
+      } else if (player.movingRight) {
+        player.x += charSpeed;
+        player.angle = Math.min(0.35, player.angle + 0.08);
+      } else {
+        player.angle *= 0.8;
+      }
+
+      if (player.x < 25) player.x = 25;
+      if (player.x > canvas.width - 25) player.x = canvas.width - 25;
+
+      // Fuel Passive Decay
+      player.fuel = Math.max(0, player.fuel - 0.025);
+
+      // Spawn Comets and Vocab Stars
+      if (Math.random() < 0.045) {
+        const type = Math.random() < 0.45 ? 'star' : 'comet';
+        objects.push({
+          x: Math.random() * (canvas.width - 50) + 25,
+          y: -30,
+          type: type,
+          speed: Math.random() * 2 + 2.5
+        });
+      }
+
+      // Handle Object Collisions
+      for (let i = objects.length - 1; i >= 0; i--) {
+        const obj = objects[i];
+        obj.y += obj.speed;
+
+        const dist = Math.hypot(player.x - obj.x, player.y - obj.y);
+        if (dist < 30) {
+          if (obj.type === 'comet') {
+            playSFX('comet');
+            player.score = Math.max(0, player.score - 50);
+            player.fuel = Math.max(0, player.fuel - 15);
+            triggerShake(pNum);
+          } else if (obj.type === 'star') {
+            playSFX('star');
+            openQuizModal(pNum);
+          }
+          objects.splice(i, 1);
+          continue;
+        }
+
+        if (obj.y > canvas.height + 40) objects.splice(i, 1);
+      }
+    }
+
+    function drawPlayerSpace(ctx, player, canvas, objects) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0b0d1b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Dynamic Starfield Background
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 24; i++) {
+        const sx = (i * 37) % canvas.width;
+        const sy = (i * 61 + Date.now() * 0.12) % canvas.height;
+        ctx.fillRect(sx, sy, 2, 2);
+      }
+
+      // Draw Comets and Stars
+      objects.forEach(obj => {
+        if (obj.type === 'comet') {
+          ctx.fillStyle = '#f97316';
+          ctx.beginPath();
+          ctx.arc(obj.x, obj.y, 14, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(obj.x, obj.y - 4, 8, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = '#facc15';
+          ctx.font = '22px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('⭐', obj.x, obj.y + 7);
+        }
+      });
+
+      // Draw Alkaba Rocket
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.rotate(player.angle);
+
+      // Flame Thruster
+      const flameColor = player.skin === 'red' ? '#f97316' : '#06b6d4';
+      ctx.fillStyle = flameColor;
+      ctx.beginPath();
+      ctx.moveTo(-8, 18);
+      ctx.lineTo(0, 18 + Math.random() * 14 + 10);
+      ctx.lineTo(8, 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // Fuselage Hull
+      ctx.fillStyle = player.skin === 'red' ? '#ef4444' : '#2563eb';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -32);
+      ctx.bezierCurveTo(16, -8, 16, 12, 12, 18);
+      ctx.lineTo(-12, 18);
+      ctx.bezierCurveTo(-16, 12, -16, -8, 0, -32);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Cockpit Glass
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(0, -6, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function updateHUD() {
+      document.getElementById('p1-score-text').innerText = player1.score;
+      document.getElementById('p1-fuel-text').innerText = `${Math.floor(player1.fuel)}%`;
+      document.getElementById('p1-fuel-bar').style.width = `${Math.max(0, player1.fuel)}%`;
+
+      if (currentGameMode === 'duel') {
+        document.getElementById('p2-score-text').innerText = player2.score;
+        document.getElementById('p2-fuel-text').innerText = `${Math.floor(player2.fuel)}%`;
+        document.getElementById('p2-fuel-bar').style.width = `${Math.max(0, player2.fuel)}%`;
+      }
+    }
+
+    function triggerShake(pNum) {
+      const view = document.getElementById(`p${pNum}-view`);
+      view.classList.add('shake');
+      setTimeout(() => view.classList.remove('shake'), 400);
+    }
+
+    // --- QUIZ MODAL & INPUT HANDLING ---
+    function openQuizModal(pNum) {
+      const player = pNum === 1 ? player1 : player2;
+      player.isAnswering = true;
+      player.quizInput = '';
+
+      const item = vocabData[Math.floor(Math.random() * vocabData.length)];
+      player.currentQuiz = item;
+
+      document.getElementById(`p${pNum}-quiz-cat`).innerText = `${item.cat} Category`;
+      document.getElementById(`p${pNum}-quiz-icon`).innerText = item.icon;
+      document.getElementById(`p${pNum}-quiz-input`).value = '';
+
+      // Build Scrambled On-Screen Keypad
+      const keypad = document.getElementById(`p${pNum}-keypad`);
+      keypad.innerHTML = '';
+      
+      let chars = item.word.toUpperCase().split('');
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      while (chars.length < 14) {
+        const randChar = alphabet[Math.floor(Math.random() * alphabet.length)];
+        chars.push(randChar);
+      }
+      chars.sort(() => Math.random() - 0.5);
+
+      chars.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.className = 'v-key py-1.5 text-white font-black text-xs sm:text-sm rounded active:scale-95';
+        btn.innerText = letter;
+        btn.onclick = () => {
+          player.quizInput += letter;
+          document.getElementById(`p${pNum}-quiz-input`).value = player.quizInput;
+        };
+        keypad.appendChild(btn);
+      });
+
+      const modal = document.getElementById(`p${pNum}-quiz-modal`);
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function clearQuizInput(pNum) {
+      const player = pNum === 1 ? player1 : player2;
+      player.quizInput = '';
+      document.getElementById(`p${pNum}-quiz-input`).value = '';
+    }
+
+    function submitQuizAnswer(pNum) {
+      const player = pNum === 1 ? player1 : player2;
+      const modal = document.getElementById(`p${pNum}-quiz-modal`);
+
+      if (player.quizInput.toLowerCase() === player.currentQuiz.word.toLowerCase()) {
+        playSFX('correct');
+        player.score += 100;
+        player.fuel = 100; // Full Fuel Refill (+FUEL)
+      } else {
+        playSFX('wrong');
+      }
+
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      player.isAnswering = false;
+    }
+
+    function endGame() {
+      isGameRunning = false;
+      document.getElementById('screen-victory').classList.remove('hidden');
+      document.getElementById('screen-victory').classList.add('flex');
+
+      let winnerText = "";
+      if (currentGameMode === 'solo') {
+        winnerText = player1.score >= WIN_SCORE ? `${player1.name.toUpperCase()} REACHED 1300 PTS! 🏆` : `${player1.name.toUpperCase()} SCORED ${player1.score} PTS!`;
+        document.getElementById('p2-score-card').classList.add('hidden');
+      } else {
+        document.getElementById('p2-score-card').classList.remove('hidden');
+        if (player1.score >= WIN_SCORE) winnerText = `${player1.name.toUpperCase()} (P1) WON (1300 PTS)! 🏆`;
+        else if (player2.score >= WIN_SCORE) winnerText = `${player2.name.toUpperCase()} (P2) WON (1300 PTS)! 🏆`;
+        else winnerText = player1.score > player2.score ? `${player1.name} WINS ON POINTS!` : `${player2.name} WINS ON POINTS!`;
+      }
+
+      document.getElementById('winner-name-text').innerText = winnerText;
+      document.getElementById('p1-final-score').innerText = `${player1.score} PTS`;
+      document.getElementById('p2-final-score').innerText = `${player2.score} PTS`;
+    }
+
+    function returnToMenu() {
+      isGameRunning = false;
+      document.getElementById('screen-victory').classList.add('hidden');
+      document.getElementById('game-container').classList.add('hidden');
+      document.getElementById('screen-cover').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
